@@ -6,6 +6,7 @@ import connectDB from "./db/index.js";
 
 
 dotenv.config({path:'./env'})
+// console.log(process.env)
  const app = express()
  connectDB()
 
