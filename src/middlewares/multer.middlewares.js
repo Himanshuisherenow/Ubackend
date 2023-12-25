@@ -1,6 +1,6 @@
-import multer from "multer";
+import multer from "multer"; ///express-fileupload 
 
-const multer = require('multer');
+//  multer = require('multer');
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {

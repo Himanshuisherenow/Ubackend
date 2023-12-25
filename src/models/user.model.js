@@ -1,5 +1,8 @@
     import mongoose , {Schema} from "mongoose";
-    import { JsonWebTokenError } from "jsonwebtoken"; // bearor token - who have this we will give access 
+    //import { jsonwebtoken } from "jsonwebtoken"; // bearor token - who have this we will give access 
+    import pkg from 'jsonwebtoken';
+    import bcrypt from 'bcrypt'
+    const { jwt } = pkg;
 
     const userSchema = new mongoose.Schema({ // new Schema()
 
@@ -28,7 +31,7 @@
         },
         avatar : {
             type : String,
-            required : true ,
+            
 
         },
         coverImage : {
@@ -51,7 +54,7 @@
         },
 
 
-    },{timestamps});
+    });
 
 
     userSchema.pre("save",async function(next){
