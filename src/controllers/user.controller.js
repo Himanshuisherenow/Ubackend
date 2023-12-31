@@ -5,6 +5,9 @@ import {uploadOnCloudinary} from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiRespons.js";
 import jwt from "jsonwebtoken"
 import mongoose from "mongoose";
+// import bcrypt from "bcrypt"
+
+
 
 
 const generateAccessAndRefreshToken = async (userId) => {
@@ -35,15 +38,19 @@ const registerUser = asyncHandler( async (req, res) => {
   // return res
 
 
-  const {fullName, email, username, password } = req.body
+  const {fullname, email, username, password } = req.body
   //console.log("email: ", email);
 
+
+  //fill the field
+
   if (
-      [fullName, email, username, password].some((field) => field?.trim() === "")
+      [fullname, email, username, password].some((field) => field?.trim() === "")
   ) {
       throw new ApiError(400, "All fields are required")
   }
 
+  //now check if any exist of not already
   const existedUser = await User.findOne({
       $or: [{ username }, { email }]
   })
@@ -53,6 +60,8 @@ const registerUser = asyncHandler( async (req, res) => {
   }
   //console.log(req.files);
 
+  //now the cloudnary uploading thing
+
   const avatarLocalPath = req.files?.avatar[0]?.path;
   //const coverImageLocalPath = req.files?.coverImage[0]?.path;
 
@@ -60,7 +69,6 @@ const registerUser = asyncHandler( async (req, res) => {
   if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
       coverImageLocalPath = req.files.coverImage[0].path
   }
-  
 
   if (!avatarLocalPath) {
       throw new ApiError(400, "Avatar file is required")
@@ -73,9 +81,10 @@ const registerUser = asyncHandler( async (req, res) => {
       throw new ApiError(400, "Avatar file is required")
   }
  
+// creating user data inside the monogo collection 
 
   const user = await User.create({
-      fullName,
+      fullname,
       avatar: avatar.url,
       coverImage: coverImage?.url || "",
       email, 
@@ -83,6 +92,7 @@ const registerUser = asyncHandler( async (req, res) => {
       username: username.toLowerCase()
   })
 
+  // in mongo we have data of user but when we cant send all info about it , this will be available to frontend
   const createdUser = await User.findById(user._id).select(
       "-password -refreshToken"
   )
@@ -91,8 +101,9 @@ const registerUser = asyncHandler( async (req, res) => {
       throw new ApiError(500, "Something went wrong while registering the user")
   }
 
-  return res.status(201).json(
-      new ApiResponse(200, createdUser, "User registered Successfully")
+
+  return res.status(201)
+            .json( new ApiResponse(200, createdUser, "User registered Successfully")
   )
 
 } )
@@ -126,20 +137,28 @@ const loginUser = asyncHandler(async (req, res) =>{
       throw new ApiError(404, "User does not exist")
   }
 
+//   const p = await bcrypt.compare( password, user.password) 
+//   console.log(p)
+
  const isPasswordValid = await user.isPasswordCorrect(password);
  if (!isPasswordValid) {
   throw new ApiError(401, "Invalid user credentials")
   }
 
+  // giveing access and refresh Token 
+
  const {accessToken, refreshToken} = await generateAccessAndRefreshToken(user._id)
 
+ // user details without refreshtoken  and password
   const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
-  const options = {
+  // something
+  const options = { 
       httpOnly: true,
       secure: true
   }
 
+  /// passing cookies 
   return res
   .status(200)
   .cookie("accessToken", accessToken, options)
@@ -157,6 +176,8 @@ const loginUser = asyncHandler(async (req, res) =>{
 })
 
 const logoutUser = asyncHandler(async(req, res) => {
+
+    /// req has access of user._id 
   await User.findByIdAndUpdate(
       req.user._id,
       {
@@ -206,11 +227,12 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       }
   
       const options = {
-          httpOnly: true,
-          secure: true
+          httpOnly: true, // means javascript will not be able to access , in cookies
+          secure: true,
+          sameSite : strict,
       }
   
-      const {accessToken, newRefreshToken} = await generateAccessAndRefereshTokens(user._id)
+      const {accessToken, newRefreshToken} = await generateAccessAndRefreshToken(user._id)
   
       return res
       .status(200)
